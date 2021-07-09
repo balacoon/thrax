@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,19 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// This node represents basic (primitive) types in the language.  This name is
-// currently misleading - the held type can be anything represented in a
-// DataType essentially - FST, symbol table, or string.
+// This node represents basic (primitive) types in the language. This name is
+// currently misleading. The held type can be anything represented in a
+// DataType essentially: FST, symbol table, or string.
 
 #ifndef THRAX_FST_NODE_H_
 #define THRAX_FST_NODE_H_
 
 #include <string>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -47,37 +45,45 @@ class FstNode : public Node {
     UNION_FSTNODE,
     UNKNOWN_FSTNODE,
   };
+
   static const char* FstNodeTypeToString(FstNodeType type);
 
   explicit FstNode(FstNodeType type);
-  virtual ~FstNode();
+
+  ~FstNode() override;
 
   void AddArgument(Node* arg);
+
   bool SetWeight(StringNode* weight);
 
   FstNodeType GetType() const;
 
   int NumArguments() const;
+
   Node* GetArgument(int index) const;
 
   bool HasWeight() const;
-  const string& GetWeight() const;
+
+  const std::string& GetWeight() const;
+
   const bool ShouldOptimize() const;
+
   void SetOptimize();
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  protected:
   FstNodeType type_;
-  vector<Node*> arguments_;
-  StringNode* weight_;  // NULL = default weight.
+  std::vector<Node*> arguments_;
+  StringNode* weight_;  // nullptr = default weight.
   bool optimize_;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(FstNode);
+  FstNode(const FstNode&) = delete;
+  FstNode& operator=(const FstNode&) = delete;
 };
 
-// A specialization to string FSTs, containing parse information.  If we should
+// A specialization to string FSTs, containing parse information. If we should
 // parse the text using a symbol table, then the symbol table identifier should
 // be in arguments_[1].
 class StringFstNode : public FstNode {
@@ -89,16 +95,18 @@ class StringFstNode : public FstNode {
   };
 
   explicit StringFstNode(ParseMode parse_mode);
-  virtual ~StringFstNode();
+
+  ~StringFstNode() override;
 
   ParseMode GetParseMode() const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   ParseMode parse_mode_;
 
-  DISALLOW_COPY_AND_ASSIGN(StringFstNode);
+  StringFstNode(const StringFstNode&) = delete;
+  StringFstNode& operator=(const StringFstNode&) = delete;
 };
 
 class RepetitionFstNode : public FstNode {
@@ -109,23 +117,28 @@ class RepetitionFstNode : public FstNode {
     QUESTION = 2,
     RANGE = 3,
   };
+
   static const char* RepetitionFstNodeTypeToString(RepetitionFstNodeType type);
 
   explicit RepetitionFstNode(RepetitionFstNodeType type);
-  virtual ~RepetitionFstNode();
+
+  ~RepetitionFstNode() override;
 
   RepetitionFstNodeType GetRepetitionType() const;
 
   void SetRange(int min, int max);
+
   void GetRange(int* min, int* max) const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   RepetitionFstNodeType repetition_type_;
-  int range_min_, range_max_;
+  int range_min_;
+  int range_max_;
 
-  DISALLOW_COPY_AND_ASSIGN(RepetitionFstNode);
+  RepetitionFstNode(const RepetitionFstNode&) = delete;
+  RepetitionFstNode& operator=(const RepetitionFstNode&) = delete;
 };
 
 }  // namespace thrax

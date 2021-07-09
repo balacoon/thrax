@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// The GrmManager holds a set of FSTs in memory and performs rewrites
-// via composition as well as various I/O functions. GrmManager is
+// The GrmManager holds a set of FSTs in memory and performs rewrites via
+// composition as well as various I/O functions. GrmManager is
 // thread-compatible.
 
 #ifndef NLP_GRM_LANGUAGE_GRM_MANAGER_H_
 #define NLP_GRM_LANGUAGE_GRM_MANAGER_H_
+
+#include <memory>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -32,83 +33,73 @@ namespace thrax {
 
 template <typename Arc>
 class GrmManagerSpec : public AbstractGrmManager<Arc> {
-  typedef AbstractGrmManager<Arc> Base;
-  typedef map<string, const typename Base::Transducer*> FstMap;
+  using Base = AbstractGrmManager<Arc>;
 
  public:
-  GrmManagerSpec() : Base() { }
-  virtual ~GrmManagerSpec() { }
+  using typename Base::FstMap;
 
-  // Loads up the FSTs from a FAR file.  Returns true on success and false
+  GrmManagerSpec() : Base() {}
+
+  ~GrmManagerSpec() override {}
+
+  // Loads up the FSTs from a FAR file. Returns true on success and false
   // otherwise.
-  bool LoadArchive(const string& filename);
-
-  bool LoadArchive(std::istream *stream);
+  bool LoadArchive(const std::string &filename);
 
   // This function will write the created FSTs into an FST archive with the
   // provided filename.
-  void ExportFar(const string& filename) const;
+  void ExportFar(const std::string &filename) const override;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(GrmManagerSpec);
+  GrmManagerSpec(const GrmManagerSpec &) = delete;
+  GrmManagerSpec &operator=(const GrmManagerSpec &) = delete;
 };
 
 template <typename Arc>
-bool GrmManagerSpec<Arc>::LoadArchive(const string& filename) {
-  fst::FarReader<Arc>* reader =
-      fst::STTableFarReader<Arc>::Open(filename);
+bool GrmManagerSpec<Arc>::LoadArchive(const std::string &filename) {
+  std::unique_ptr<::fst::FarReader<Arc>> reader(
+#ifndef NO_GOOGLE
+      ::fst::STTableFarReader<Arc>::Open(filename));
+#else
+      ::fst::STTableFarReader<Arc>::Open(filename));
+#endif  // NO_GOOGLE
   if (!reader) {
-    std::cout << "Unable to open FAR: " << filename;
-    delete reader;
+    LOG(ERROR) << "Unable to open FAR: " << filename;
     return false;
   }
-  bool rc = Base::LoadArchive(reader);
-  delete reader;
-  return rc;
+  return Base::LoadArchive(reader.get());
 }
 
 template <typename Arc>
-bool GrmManagerSpec<Arc>::LoadArchive(std::istream *stream) {
-  fst::FarReader<Arc>* reader =
-      fst::STTableFarReader<Arc>::Open(stream);
-  if (!reader) {
-    std::cout << "Unable to open FAR from stream";
-    delete reader;
-    return false;
-  }
-  bool rc = Base::LoadArchive(reader);
-  delete reader;
-  return rc;
-}
-
-template <typename Arc>
-void GrmManagerSpec<Arc>::ExportFar(const string &filename) const {
-  const string dir(JoinPath(
-      FLAGS_outdir, StripBasename(filename)));
+void GrmManagerSpec<Arc>::ExportFar(const std::string &filename) const {
+  const std::string dir(JoinPath(FLAGS_outdir, StripBasename(filename)));
   VLOG(1) << "Creating output directory: " << dir;
   if (!RecursivelyCreateDir(dir))
     LOG(FATAL) << "Unable to create output directory: " << dir;
 
-  const string out_path(JoinPath(FLAGS_outdir, filename));
-  fst::STTableFarWriter<Arc>* writer =
-      fst::STTableFarWriter<Arc>::Create(out_path);
-  if (!writer)
+  const std::string out_path(JoinPath(FLAGS_outdir, filename));
+  std::unique_ptr<::fst::FarWriter<Arc>> writer(
+#ifndef NO_GOOGLE
+      ::fst::STTableFarWriter<Arc>::Create(out_path));
+#else
+      ::fst::STTableFarWriter<Arc>::Create(out_path));
+#endif  // NO_GOOGLE
+  if (!writer) {
     LOG(FATAL) << "Failed to create writer for: " << out_path;
-
-  const FstMap &fsts = Base::GetFstMap();
-  for (typename FstMap::const_iterator it = fsts.begin();
-       it != fsts.end(); ++it) {
+  }
+  const auto &fsts = Base::GetFstMap();
+  for (auto it = fsts.cbegin(); it != fsts.cend(); ++it) {
     VLOG(1) << "Writing FST: " << it->first;
     writer->Add(it->first, *it->second);
   }
-  delete writer;
 }
 
 // A lot of code outside this build uses GrmManager with the old meaning of
-// GrmManagerSpec<fst::StdArc>, forward-declaring it as a class. To obviate
-// the need to change all that outside code, we provide this derived class:
+// GrmManagerSpec<::fst::StdArc>, forward-declaring it as a class. To
+// obviate the need to change all that outside code, we provide this derived
+// class:
 
-class GrmManager : public GrmManagerSpec<fst::StdArc> {};
+class GrmManager : public GrmManagerSpec<::fst::StdArc> {};
 
 }  // namespace thrax
 

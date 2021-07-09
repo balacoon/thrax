@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,22 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// This function removes epsilon arcs from an FST.  The argument FST will be
-// expanded, and the epsilon arcs removed in place.
+// This function removes epsilon arcs from an FST. The argument FST is be
+// expanded so that epsilon arcs can be removed in place.
 
 #ifndef THRAX_RMEPSILON_H_
 #define THRAX_RMEPSILON_H_
 
 #include <iostream>
+#include <memory>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fstlib.h>
+#include <fst/rmepsilon.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -35,28 +34,29 @@ namespace function {
 template <typename Arc>
 class RmEpsilon : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   RmEpsilon() {}
-  virtual ~RmEpsilon() {}
+  ~RmEpsilon() final {}
 
  protected:
-  virtual Transducer* UnaryFstExecute(const Transducer& fst,
-                                      const vector<DataType*>& args) {
+  std::unique_ptr<Transducer> UnaryFstExecute(
+      const Transducer& fst,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 1) {
       std::cout << "RmEpsilon: Expected 1 argument but got " << args.size()
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-
-    MutableTransducer* output = new MutableTransducer(fst);
-    fst::RmEpsilon(output);
+    auto output = std::make_unique<MutableTransducer>(fst);
+    ::fst::RmEpsilon(output.get());
     return output;
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(RmEpsilon<Arc>);
+  RmEpsilon<Arc>(const RmEpsilon<Arc>&) = delete;
+  RmEpsilon<Arc>& operator=(const RmEpsilon<Arc>&) = delete;
 };
 
 }  // namespace function

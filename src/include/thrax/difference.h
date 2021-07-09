@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//         rws@google.com (Richard Sproat)
-//
-// Takes the difference of two FSTs.  This function may expand the second of the
+// Takes the difference of two FSTs. This function may expand the second of the
 // FSTs so that it can be optimized (determinized and epsilon-removed) if
 // necessary.
 
@@ -22,14 +20,12 @@
 #define THRAX_DIFFERENCE_H_
 
 #include <iostream>
+#include <memory>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <fst/difference.h>
-#include <fst/fst.h>
-#include <fst/properties.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 #include <thrax/optimize.h>
@@ -39,54 +35,65 @@ DECLARE_bool(save_symbols);  // From util/flags.cc.
 namespace thrax {
 namespace function {
 
-const uint64 kRightProps = fst::kNoEpsilons | fst::kIDeterministic;
-
 template <typename Arc>
 class Difference : public BinaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   Difference() {}
-  virtual ~Difference() {}
+  ~Difference() final {}
 
  protected:
-  virtual Transducer* BinaryFstExecute(const Transducer& left,
-                                       const Transducer& right,
-                                       const vector<DataType*>& args) {
+  std::unique_ptr<Transducer> BinaryFstExecute(
+      const Transducer& left, const Transducer& right,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 2) {
       std::cout << "Difference: Expected 2 arguments but got " << args.size()
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-
     if (FLAGS_save_symbols) {
-      if (!CompatSymbols(left.InputSymbols(), right.InputSymbols())) {
+      if (!::fst::CompatSymbols(left.InputSymbols(),
+                                    right.InputSymbols())) {
         std::cout << "Difference: input symbol table of 1st argument "
                   << "does not match input symbol table of 2nd argument"
                   << std::endl;
-        return NULL;
+        return nullptr;
       }
-      if (!CompatSymbols(left.OutputSymbols(), right.OutputSymbols())) {
+      if (!::fst::CompatSymbols(left.OutputSymbols(),
+                                    right.OutputSymbols())) {
         std::cout << "Difference: output symbol table of 1st argument "
                   << "does not match output symbol table of 2nd argument"
                   << std::endl;
-        return NULL;
+        return nullptr;
       }
     }
-
-    if (right.Properties(kRightProps, false) == kRightProps) {
-      return new fst::DifferenceFst<Arc>(left, right);
+    // The function may only be called with an unweighted acceptor RHS.
+    constexpr auto kRightInputProps =
+        ::fst::kAcceptor | ::fst::kUnweighted;
+    if (right.Properties(kRightInputProps, true) != kRightInputProps) {
+      std::cout << "Difference: 2nd argument must be an unweighted acceptor"
+                << std::endl;
+      return nullptr;
+    }
+    // The underlying difference operation requires the RHS to have these
+    // properties as well, but they may be satisfied by optimization.
+    constexpr auto kRightOptimizationProps =
+        ::fst::kNoEpsilons | ::fst::kIDeterministic;
+    if (right.Properties(kRightOptimizationProps, false) ==
+                         kRightOptimizationProps) {
+      return std::make_unique<::fst::DifferenceFst<Arc>>(left, right);
     } else {
-      Transducer* optimized_right = Optimize<Arc>::ActuallyOptimize(right);
-      Transducer* return_fst =
-          new fst::DifferenceFst<Arc>(left, *optimized_right);
-      delete optimized_right;
-      return return_fst;
+      auto optimized_right =
+          Optimize<Arc>::ActuallyOptimizeDifferenceRhs(right, true);
+      return std::make_unique<::fst::DifferenceFst<Arc>>(left,
+                                                              *optimized_right);
     }
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Difference<Arc>);
+  Difference<Arc>(const Difference<Arc>&) = delete;
+  Difference<Arc>& operator=(const Difference<Arc>&) = delete;
 };
 
 }  // namespace function

@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,20 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: rws@google.com (Richard Sproat)
-//
-// Projects the fst onto the input or output dimension.
+// Projects the FST onto the input or output dimension.
 
 #ifndef THRAX_PROJECT_H_
 #define THRAX_PROJECT_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
-using std::vector;
 
-#include <fst/fstlib.h>
+#include <fst/project.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -33,39 +32,41 @@ namespace function {
 template <typename Arc>
 class Project : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   Project() {}
-  virtual ~Project() {}
+  ~Project() final {}
 
  protected:
-  virtual Transducer* UnaryFstExecute(const Transducer& fst,
-                                      const vector<DataType*>& args) {
+  std::unique_ptr<Transducer> UnaryFstExecute(
+      const Transducer& fst,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 2) {
       std::cout << "Project: Expected 2 arguments but received " << args.size()
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-    if (!args[1]->is<string>()) {
+    if (!args[1]->is<std::string>()) {
       std::cout << "Project: Expected string for argument 2" << std::endl;
-      return NULL;
+      return nullptr;
     }
-
-    const string& project = *args[1]->get<string>();
+    const auto& project = *args[1]->get<std::string>();
     if (project == "input") {
-      return new fst::ProjectFst<Arc>(fst, fst::PROJECT_INPUT);
+      return std::make_unique<::fst::ProjectFst<Arc>>(
+          fst, ::fst::ProjectType::INPUT);
     } else if (project == "output") {
-      return new fst::ProjectFst<Arc>(fst, fst::PROJECT_OUTPUT);
+      return std::make_unique<::fst::ProjectFst<Arc>>(
+          fst, ::fst::ProjectType::OUTPUT);
     } else {
       std::cout << "Project: Invalid projection parameter: " << project
                 << " (should be 'input' or 'output')" << std::endl;
-      return NULL;
+      return nullptr;
     }
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Project<Arc>);
+  Project<Arc>(const Project<Arc>&) = delete;
+  Project<Arc>& operator=(const Project<Arc>&) = delete;
 };
 
 }  // namespace function

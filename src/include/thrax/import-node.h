@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// An import statement is one that loads up another module.  This node contains
+// An import statement is one that loads up another module. This node contains
 // the path and alias for an import.
 
 #ifndef THRAX_IMPORT_NODE_H_
 #define THRAX_IMPORT_NODE_H_
-
-#include <string>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -34,18 +31,21 @@ class StringNode;
 class ImportNode : public Node {
  public:
   ImportNode(StringNode* path, IdentifierNode* alias);
-  virtual ~ImportNode();
+
+  ~ImportNode() override;
 
   StringNode* GetPath() const;
+
   IdentifierNode* GetAlias() const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   StringNode* path_;
   IdentifierNode* alias_;
 
-  DISALLOW_COPY_AND_ASSIGN(ImportNode);
+  ImportNode(const ImportNode&) = delete;
+  ImportNode& operator=(const ImportNode&) = delete;
 };
 
 }  // namespace thrax

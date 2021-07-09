@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,25 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//         rws@google.com (Richard Sproat)
-//
-// Loads up an FST from a single FAR archive.
+// Loads an FST from a single FAR archive.
 
 #ifndef THRAX_LOADFSTFROMFAR_H_
 #define THRAX_LOADFSTFROMFAR_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
 #include <thrax/compat/utils.h>
 #include <fst/extensions/far/far.h>
-#include <fst/fst.h>
+#include <fst/vector-fst.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -41,50 +39,47 @@ namespace function {
 template <typename Arc>
 class LoadFstFromFar : public Function<Arc> {
  public:
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   LoadFstFromFar() {}
-  virtual ~LoadFstFromFar() {}
+  ~LoadFstFromFar() final {}
 
  protected:
-  virtual DataType* Execute(const vector<DataType*>& args) {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 2) {
       std::cout << "LoadFstFromFar: Expected 2 arguments but got "
                 << args.size() << std::endl;
-      return NULL;
+      return nullptr;
     }
-
-    if (!args[0]->is<string>()) {
+    if (!args[0]->is<std::string>()) {
       std::cout << "LoadFstFromFar: Expected string (path) for argument 1"
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-    const string& far_file =
-        JoinPath(FLAGS_indir, *args[0]->get<string>());
-
-    if (!args[1]->is<string>()) {
+    const auto& far_file =
+        JoinPath(FLAGS_indir, *args[0]->get<std::string>());
+    if (!args[1]->is<std::string>()) {
       std::cout << "LoadFstFromFar: Expected string (FST name) for argument 2"
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-    const string& fst_name = *args[1]->get<string>();
-
+    const auto& fst_name = *args[1]->get<std::string>();
     VLOG(2) << "Loading FST " << fst_name << " from " << far_file;
-    fst::FarReader<Arc>* reader(fst::FarReader<Arc>::Open(far_file));
+    std::unique_ptr<::fst::FarReader<Arc>> reader(
+        ::fst::FarReader<Arc>::Open(far_file));
     if (!reader) {
       std::cout << "LoadFstFromFar: Unable to open FAR: " << far_file
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
 
     if (!reader->Find(fst_name)) {
       std::cout << "LoadFstFromFar: Unable to find FST: " << fst_name
                 << std::endl;
-      delete reader;
-      return NULL;
+      return nullptr;
     }
-    MutableTransducer* fst = new MutableTransducer(*(reader->GetFst()));
-    delete reader;
+    auto fst = std::make_unique<MutableTransducer>(*(reader->GetFst()));
     if (FLAGS_save_symbols) {
       if (!fst->InputSymbols()) {
         LOG(WARNING) << "LoadFstFromFar: FLAGS_save_symbols is set "
@@ -95,11 +90,12 @@ class LoadFstFromFar : public Function<Arc> {
                      << "but fst has no output symbols";
       }
     }
-    return new DataType(fst);
+    return std::make_unique<DataType>(std::move(fst));
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(LoadFstFromFar<Arc>);
+  LoadFstFromFar<Arc>(const LoadFstFromFar<Arc>&) = delete;
+  LoadFstFromFar<Arc>& operator=(const LoadFstFromFar<Arc>&) = delete;
 };
 
 }  // namespace function

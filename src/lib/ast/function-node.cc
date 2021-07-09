@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-
 #include <thrax/function-node.h>
 
 #include <thrax/collection-node.h>
@@ -32,20 +31,12 @@ FunctionNode::~FunctionNode() {
   delete body_;
 }
 
-IdentifierNode* FunctionNode::GetName() const {
-  return name_;
-}
+IdentifierNode* FunctionNode::GetName() const { return name_; }
 
-CollectionNode* FunctionNode::GetArguments() const {
-  return arguments_;
-}
+CollectionNode* FunctionNode::GetArguments() const { return arguments_; }
 
-CollectionNode* FunctionNode::GetBody() const {
-  return body_;
-}
+CollectionNode* FunctionNode::GetBody() const { return body_; }
 
-void FunctionNode::Accept(AstWalker* walker) {
-  walker->Visit(this);
-}
+void FunctionNode::Accept(AstWalker* walker) { walker->Visit(this); }
 
 }  // namespace thrax

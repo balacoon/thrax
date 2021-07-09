@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,37 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: rws@google.com (Richard Sproat)
+#include <thrax/symbols.h>
+
+#include <stdio.h>
 
 #include <string>
 #include <vector>
-using std::vector;
 
-#include <fst/fstlib.h>
 #include <fst/string.h>
-#include <thrax/symbols.h>
 
 namespace thrax {
 namespace function {
 
-// Needed for symbol table functionality built into symbols.h
+// Needed for symbol table functionality built into symbols.h.
 
 SymbolTableBuilder kSymbolTableBuilder;
 
-fst::SymbolTable* GetByteSymbolTable() {
+const ::fst::SymbolTable* GetByteSymbolTable() {
   return kSymbolTableBuilder.GetByteSymbolTable();
 }
 
-fst::SymbolTable* GetUtf8SymbolTable() {
+const ::fst::SymbolTable* GetUtf8SymbolTable() {
   return kSymbolTableBuilder.GetUtf8SymbolTable();
 }
 
-void AddToByteSymbolTable(string symbol, int64 label) {
+void AddToByteSymbolTable(std::string symbol, int64 label) {
   kSymbolTableBuilder.AddToByteSymbolTable(symbol, label);
 }
 
-void AddToUtf8SymbolTable(string symbol, int64 label) {
+void AddToUtf8SymbolTable(std::string symbol, int64 label) {
   kSymbolTableBuilder.AddToUtf8SymbolTable(symbol, label);
 }
 
@@ -144,36 +144,32 @@ inline bool IsUnicodeSpaceOrControl(int c) {
 }
 
 SymbolTableBuilder::SymbolTableBuilder()
-  : byte_symbols_(NULL), utf8_symbols_(NULL) {}
+    : byte_symbols_(nullptr), utf8_symbols_(nullptr) {}
 
-SymbolTableBuilder::~SymbolTableBuilder() {
-  delete byte_symbols_;
-  delete utf8_symbols_;
-}
-
-fst::SymbolTable* SymbolTableBuilder::GetByteSymbolTable() {
+const ::fst::SymbolTable* SymbolTableBuilder::GetByteSymbolTable() {
   if (!byte_symbols_) GenerateByteSymbolTable();
-  return byte_symbols_;
+  return byte_symbols_.get();
 }
 
-fst::SymbolTable* SymbolTableBuilder::GetUtf8SymbolTable() {
+const ::fst::SymbolTable* SymbolTableBuilder::GetUtf8SymbolTable() {
   if (!utf8_symbols_) GenerateUtf8SymbolTable();
-  return utf8_symbols_;
+  return utf8_symbols_.get();
 }
 
-void SymbolTableBuilder::AddToByteSymbolTable(string symbol, int64 label) {
+void SymbolTableBuilder::AddToByteSymbolTable(std::string symbol, int64 label) {
   if (!byte_symbols_) return;
   byte_symbols_->AddSymbol(symbol, label);
 }
 
-void SymbolTableBuilder::AddToUtf8SymbolTable(string symbol, int64 label) {
+void SymbolTableBuilder::AddToUtf8SymbolTable(std::string symbol, int64 label) {
   if (!utf8_symbols_) return;
   utf8_symbols_->AddSymbol(symbol, label);
 }
 
 void SymbolTableBuilder::GenerateByteSymbolTable() {
-  fst::MutexLock lock(&map_mutex_);
-  byte_symbols_ = new fst::SymbolTable(kByteSymbolTableName);
+  ::fst::MutexLock lock(&map_mutex_);
+  byte_symbols_ =
+      std::make_unique<::fst::SymbolTable>(kByteSymbolTableName);
   byte_symbols_->AddSymbol("<epsilon>", 0);
   char c_str[5];
   for (int c = 1; c < 256; ++c) {
@@ -181,25 +177,26 @@ void SymbolTableBuilder::GenerateByteSymbolTable() {
       c_str[0] = static_cast<char>(c);
       c_str[1] = '\0';
     } else {
-      snprintf(c_str, 5, "0x%02x", c);
+      snprintf(c_str, sizeof(c_str), "0x%02x", c);
     }
-    byte_symbols_->AddSymbol(string(c_str), c);
+    byte_symbols_->AddSymbol(std::string(c_str), c);
   }
 }
 
 void SymbolTableBuilder::GenerateUtf8SymbolTable() {
-  fst::MutexLock lock(&map_mutex_);
-  utf8_symbols_ = new fst::SymbolTable(kUtf8SymbolTableName);
+  ::fst::MutexLock lock(&map_mutex_);
+  utf8_symbols_ =
+      std::make_unique<::fst::SymbolTable>(kUtf8SymbolTableName);
   utf8_symbols_->AddSymbol("<epsilon>", 0);
   for (int c = 1; c < 0x10000; ++c) {
-    vector<int> labels;
+    std::vector<int> labels;
     labels.push_back(c);
-    string utf8_label;
-    if (fst::LabelsToUTF8String(labels, &utf8_label)) {
+    std::string utf8_label;
+    if (::fst::LabelsToUTF8String(labels, &utf8_label)) {
       if (IsUnicodeSpaceOrControl(c)) {
         char c_str[7];
-        snprintf(c_str, 7, "0x%04x", c);
-        utf8_symbols_->AddSymbol(string(c_str), c);
+        snprintf(c_str, sizeof(c_str), "0x%04x", c);
+        utf8_symbols_->AddSymbol(std::string(c_str), c);
       } else {
         utf8_symbols_->AddSymbol(utf8_label, c);
       }

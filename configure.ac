@@ -1,50 +1,47 @@
-AC_INIT([Thrax], [1.2.2], [help@opengrm.org])
+AC_INIT([Thrax], [1.3.5], [help@opengrm.org])
 AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
 AM_PROG_AR
 
-CXXFLAGS="$CXXFLAGS -std=c++11"
-
 AC_PROG_CXX
-AC_DISABLE_STATIC
+# This library does not throw exceptions, so we do not generate exception
+# handling code. However, users are free to re-enable exception handling.
+CXX="$CXX -std=c++17 -fno-exceptions"
+
 AC_PROG_LIBTOOL
+AC_DISABLE_STATIC
 AC_PROG_YACC
 
-AC_CONFIG_HEADERS([config.h src/include/thrax/config.h])
-AC_CONFIG_SRCDIR([src/lib/main/grm-manager.cc])
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR([src/lib/main/grm-compiler.cc])
 AC_CONFIG_FILES([
   Makefile
   src/Makefile
+  src/bazel/Makefile
   src/include/Makefile
   src/lib/Makefile
   src/bin/Makefile
   src/grammars/Makefile
   src/utils/Makefile
 ])
-
 AC_CONFIG_MACRO_DIR([m4])
 AC_LANG([C++])
 
-AC_CHECK_TYPES([std::tr1::hash<long long unsigned>], [], [],
-               [[#include <tr1/unordered_map>]])
-AC_CHECK_TYPES([__gnu_cxx::slist<int>], [], [],
-               [[#include <ext/slist>]])
-
 AC_ARG_ENABLE(
-	[bin],
-	[AS_HELP_STRING(
-		[--enable-bin],
-		[enable command-line binaries])],
-	[],
-	[enable_bin=yes])
+  [bin],
+  [AS_HELP_STRING(
+    [--enable-bin],
+    [enable command-line binaries])],
+  [],
+  [enable_bin=yes])
 AM_CONDITIONAL([HAVE_BIN], [test "x$enable_bin" != xno])
 
 AC_ARG_ENABLE(
-	[readline],
-	[AS_HELP_STRING(
-		[--enable-readline],
-		[enable readline functionality in rewrite-tester])],
-	[],
-	[enable_readline=no])
+  [readline],
+  [AS_HELP_STRING(
+    [--enable-readline],
+    [enable readline functionality in rewrite-tester])],
+  [],
+  [enable_readline=no])
 AM_CONDITIONAL([HAVE_READLINE], [test "x$enable_readline" != xno])
 
 AC_CHECK_HEADER([fst/fst.h], [],
@@ -62,5 +59,8 @@ AC_CHECK_HEADER([fst/extensions/pdt/pdt.h], [],
 AC_CHECK_HEADER([fst/extensions/mpdt/mpdt.h], [],
  [AC_MSG_ERROR([fst/extensions/mpdt/mpdt.h header not found])]
 )
+
+AC_CHECK_LIB([dl], dlopen, [DL_LIBS=-ldl])
+AC_SUBST([DL_LIBS])
 
 AC_OUTPUT

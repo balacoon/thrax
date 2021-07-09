@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// An identifier is a variable name, essentially.  This node parses module
+// An identifier is a variable name, essentially. This node parses module
 // namespaces, splitting on the dots and provides iteration capabilities over
 // the identifier.
 
@@ -22,7 +21,6 @@
 
 #include <string>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -34,16 +32,18 @@ class AstWalker;
 
 class IdentifierNode : public Node {
  public:
-  explicit IdentifierNode(const string& name);
-  IdentifierNode(const string& name, int begin_pos);
-  virtual ~IdentifierNode();
+  explicit IdentifierNode(const std::string& name);
+
+  IdentifierNode(const std::string& name, int begin_pos);
+
+  ~IdentifierNode() override;
 
   // Return the entire identifier as originally used in the source.
-  const string& Get() const;
+  const std::string& Get() const;
 
   // Returns the actual identifier - the last component.  For example, if the
   // identifier is foo.bar.baz, this will return baz.
-  const string& GetIdentifier() const;
+  const std::string& GetIdentifier() const;
 
   // Returns the beginning byte position of the identifier in the source.
   int GetBeginPos() const;
@@ -52,8 +52,10 @@ class IdentifierNode : public Node {
   bool HasNamespaces() const;
 
   // STL-style iterator-based accessors of the namespace list.
-  typedef vector<string>::const_iterator const_iterator;
+  typedef std::vector<std::string>::const_iterator const_iterator;
+
   const_iterator begin() const;
+
   const_iterator end() const;
 
   // Returns true if the identifier provided is valid.  We check for:
@@ -63,18 +65,20 @@ class IdentifierNode : public Node {
   //     and numbers are allowed).
   bool IsValid() const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   bool CalculateValidity();
 
-  string full_name_;
-  string identifier_;
-  vector<string> namespaces_;  // The full_name_ broken up by namespaces.
+  std::string full_name_;
+  std::string identifier_;
+  // The full_name_ broken up by namespaces.
+  std::vector<std::string> namespaces_;
   int begin_pos_;
   bool valid_;
 
-  DISALLOW_COPY_AND_ASSIGN(IdentifierNode);
+  IdentifierNode(const IdentifierNode&) = delete;
+  IdentifierNode& operator=(const IdentifierNode&) = delete;
 };
 
 }  // namespace thrax

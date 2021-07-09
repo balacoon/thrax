@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,15 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-
 #ifndef THRAX_WALKER_H_
 #define THRAX_WALKER_H_
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-
 namespace thrax {
 
 class CollectionNode;
@@ -53,7 +51,8 @@ class AstWalker {
   virtual void Visit(StringNode* node) = 0;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(AstWalker);
+  AstWalker(const AstWalker&) = delete;
+  AstWalker& operator=(const AstWalker&) = delete;
 };
 
 }  // namespace thrax

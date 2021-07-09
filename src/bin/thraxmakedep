@@ -12,10 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Copyright 2005-2011 Google, Inc.
-# Author: rws@google.com (Richard Sproat)
-#
-# Helper function to create a makefile with the correct dependencies for
+# Helper function to create a Makefile with the correct dependencies for
 # compiling a suite of grammars.
 #
 # Usage: thraxmakedep top-level-grammar [makefile-target=Makefile]
@@ -59,7 +56,7 @@ def MakeDepend(grammar, makep):
       if match:
         interpreted_file = match.group(2)
         interpreted_files.append(interpreted_file)
-  fars = map(ReplaceExt, grammars)
+  fars = [ReplaceExt(g) for g in grammars]
   far = ReplaceExt(grammar)
   dependents = ' '.join(fars + interpreted_files)
   makep.write('%s: %s %s\n' % (far, grammar, dependents))

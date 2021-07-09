@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,21 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
 // Determinize the single FST argument.
 
 #ifndef THRAX_DETERMINIZE_H_
 #define THRAX_DETERMINIZE_H_
 
 #include <iostream>
+#include <memory>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fstlib.h>
+#include <fst/determinize.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -34,28 +33,29 @@ namespace function {
 template <typename Arc>
 class Determinize : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Determinize() {}
-  virtual ~Determinize() {}
+  ~Determinize() final {}
 
  protected:
-  virtual Transducer* UnaryFstExecute(const Transducer& fst,
-                                      const vector<DataType*>& args) {
+  std::unique_ptr<Transducer> UnaryFstExecute(
+      const Transducer& fst,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 1) {
       std::cout << "Determinize: Expected 1 argument but got " << args.size()
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-
-    MutableTransducer* output = new MutableTransducer();
-    fst::Determinize(fst, output);
+    auto output = std::make_unique<MutableTransducer>();
+    ::fst::Determinize(fst, output.get());
     return output;
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Determinize<Arc>);
+  Determinize<Arc>(const Determinize<Arc>&) = delete;
+  Determinize<Arc>& operator=(const Determinize<Arc>&) = delete;
 };
 
 }  // namespace function

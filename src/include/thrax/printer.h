@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,11 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// A AST walker that prints out each node as it visits it.
-
 #ifndef THRAX_PRINTER_H_
 #define THRAX_PRINTER_H_
 
@@ -41,37 +38,38 @@ class StatementNode;
 class StringFstNode;
 class StringNode;
 
+// An AST walker that prints out each node as it visits it.
 class AstPrinter : public AstWalker {
  public:
   AstPrinter();
-  explicit AstPrinter(ostream& output_stream);
-  virtual ~AstPrinter();
+  explicit AstPrinter(std::ostream& output_stream);
+  ~AstPrinter() override;
 
-  virtual void Visit(CollectionNode* node);
-  virtual void Visit(FstNode* node);
-  virtual void Visit(FunctionNode* node);
-  virtual void Visit(GrammarNode* node);
-  virtual void Visit(IdentifierNode* node);
-  virtual void Visit(ImportNode* node);
-  virtual void Visit(RepetitionFstNode* node);
-  virtual void Visit(ReturnNode* node);
-  virtual void Visit(RuleNode* node);
-  virtual void Visit(StatementNode* node);
-  virtual void Visit(StringFstNode* node);
-  virtual void Visit(StringNode* node);
+  void Visit(CollectionNode* node) override;
+  void Visit(FstNode* node) override;
+  void Visit(FunctionNode* node) override;
+  void Visit(GrammarNode* node) override;
+  void Visit(IdentifierNode* node) override;
+  void Visit(ImportNode* node) override;
+  void Visit(RepetitionFstNode* node) override;
+  void Visit(ReturnNode* node) override;
+  void Visit(RuleNode* node) override;
+  void Visit(StatementNode* node) override;
+  void Visit(StringFstNode* node) override;
+  void Visit(StringNode* node) override;
 
   // If true, put line numbers into ast.
   bool include_line_numbers = false;
 
  private:
-  // Returns the spacing prefix for the current nested level.
-  // Plus the line number if line_numbers is true.
-  string Spaces(Node *node) const;
+  // Returns the spacing prefix for the current nested level, plus the line
+  // number if line_numbers is true.
+  std::string Spaces(Node* node) const;
 
   // A scoped counter that increments and decrements the spacing as necessary.
   class ScopedSpaceCounter {
    public:
-    ScopedSpaceCounter(int* num_spaces);
+    explicit ScopedSpaceCounter(int* num_spaces);
     ~ScopedSpaceCounter();
 
    private:
@@ -80,10 +78,13 @@ class AstPrinter : public AstWalker {
 
   int num_spaces_;
 
-  // This is the actual stream to which we write out, which we do not own.
-  ostream& out;
+  mutable bool argument_;
 
-  DISALLOW_COPY_AND_ASSIGN(AstPrinter);
+  // This is the actual stream to which we write out, which we do not own.
+  std::ostream& out;
+
+  AstPrinter(const AstPrinter&) = delete;
+  AstPrinter& operator=(const AstPrinter&) = delete;
 };
 
 }  // namespace thrax

@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,18 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// Loads up the appropriate symbol table given the string.
+// Loads the appropriate symbol table given the string.
 
 #ifndef THRAX_SYMBOLTABLE_H_
 #define THRAX_SYMBOLTABLE_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -29,7 +28,6 @@ using std::vector;
 #include <fst/symbol-table.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
-#include <thrax/compat/stlfunctions.h>
 
 DECLARE_string(indir);  // From util/flags.cc.
 
@@ -40,39 +38,37 @@ template <typename Arc>
 class SymbolTable : public Function<Arc> {
  public:
   SymbolTable() {}
-  virtual ~SymbolTable() {}
+  ~SymbolTable() final {}
 
  protected:
-  virtual DataType* Execute(const vector<DataType*>& args) {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 1) {
       std::cout << "SymbolTable: Expected 1 argument but got " << args.size()
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-
-    if (!args[0]->is<string>()) {
+    if (!args[0]->is<std::string>()) {
       std::cout << "SymbolTable: Expected string (path) for argument 1"
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-    const string& file =
-        JoinPath(FLAGS_indir, *args[0]->get<string>());
-
+    const auto& file =
+        JoinPath(FLAGS_indir, *args[0]->get<std::string>());
     VLOG(2) << "Loading symbol table: " << file;
-    fst::SymbolTable* symtab(fst::SymbolTable::ReadText(file));
+    std::unique_ptr<::fst::SymbolTable> symtab(
+        ::fst::SymbolTable::ReadText(file));
     if (!symtab) {
       std::cout << "SymbolTable: Unable to load symbol table file: " << file
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-
-    DataType* output = new DataType(*symtab);
-    delete symtab;
-    return output;
+    return std::make_unique<DataType>(*symtab);
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(SymbolTable<Arc>);
+  SymbolTable<Arc>(const SymbolTable<Arc>&) = delete;
+  SymbolTable<Arc>& operator=(const SymbolTable<Arc>&) = delete;
 };
 
 }  // namespace function

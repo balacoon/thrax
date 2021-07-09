@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,23 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// This function connects an FST, removing all unreachable states and paths.
+// Removes weights from arcs and final states (i.e., by setting them all to
+// Weight::One()).
 
-#ifndef THRAX_CONNECT_H_
-#define THRAX_CONNECT_H_
+#ifndef THRAX_RMWEIGHT_H_
+#define THRAX_RMWEIGHT_H_
 
-#include <iostream>
+#include <memory>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/connect.h>
-#include <fst/fst.h>
-#include <fst/vector-fst.h>
+#include <fst/arc-map.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -34,33 +31,32 @@ namespace thrax {
 namespace function {
 
 template <typename Arc>
-class Connect : public UnaryFstFunction<Arc> {
+class RmWeight : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
 
-  Connect() {}
-  virtual ~Connect() {}
+  RmWeight() {}
+  ~RmWeight() final {}
 
  protected:
-  virtual Transducer* UnaryFstExecute(const Transducer& fst,
-                                      const vector<DataType*>& args) {
+  std::unique_ptr<Transducer> UnaryFstExecute(
+      const Transducer& fst,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 1) {
-      std::cout << "Connect: Expected 1 argument but got " << args.size()
+      std::cout << "RmWeight: Expected 1 argument but got " << args.size()
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-
-    MutableTransducer* output = new MutableTransducer(fst);
-    fst::Connect(output);
-    return output;
+    return fst::WrapUnique(
+        MakeArcMapFst(fst, ::fst::RmWeightMapper<Arc>()).Copy());
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Connect<Arc>);
+  RmWeight<Arc>(const RmWeight<Arc>&) = delete;
+  RmWeight<Arc>& operator=(const RmWeight<Arc>&) = delete;
 };
 
 }  // namespace function
 }  // namespace thrax
 
-#endif  // THRAX_CONNECT_H_
+#endif  // THRAX_RMWEIGHT_H_

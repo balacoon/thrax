@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,23 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-
 #include <thrax/node.h>
 
 namespace thrax {
 
-Node::Node()
-    : line_number_(-1) {}
+Node::Node() : line_number_(-1) {}
+
 Node::~Node() {}
 
-void Node::SetLine(int line) {
-  line_number_ = line;
-}
+void Node::SetLine(int line) { line_number_ = line; }
 
-int Node::getline() const {
-  return line_number_;
-}
+int Node::getline() const { return line_number_; }
 
 }  // namespace thrax

@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,22 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// This function takes an FST and expands it to a VectorFst.  This function is
+// This function takes an FST and expands it to a VectorFst. This function is
 // cheap if the input is already an expanded VectorFst.
 
 #ifndef THRAX_EXPAND_H_
 #define THRAX_EXPAND_H_
 
 #include <iostream>
+#include <memory>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fstlib.h>
+#include <fst/vector-fst.h>
 #include <thrax/datatype.h>
 #include <thrax/function.h>
 
@@ -35,25 +34,27 @@ namespace function {
 template <typename Arc>
 class Expand : public UnaryFstFunction<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
-  typedef fst::VectorFst<Arc> MutableTransducer;
+  using Transducer = ::fst::Fst<Arc>;
+  using MutableTransducer = ::fst::VectorFst<Arc>;
 
   Expand() {}
-  virtual ~Expand() {}
+  ~Expand() final {}
 
  protected:
-  virtual Transducer* UnaryFstExecute(const Transducer& fst,
-                                      const vector<DataType*>& args) {
+  std::unique_ptr<Transducer> UnaryFstExecute(
+      const Transducer& fst,
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() != 1) {
       std::cout << "Expand: Expected 1 argument but got " << args.size()
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
-    return new MutableTransducer(fst);
+    return std::make_unique<MutableTransducer>(fst);
   }
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Expand<Arc>);
+  Expand<Arc>(const Expand<Arc>&) = delete;
+  Expand<Arc>& operator=(const Expand<Arc>&) = delete;
 };
 
 }  // namespace function

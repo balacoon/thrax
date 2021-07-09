@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-
 #include <thrax/printer.h>
 
 #include <iostream>
-#include <string>
 #include <sstream>
+#include <string>
 
 #include <thrax/collection-node.h>
 #include <thrax/fst-node.h>
@@ -33,10 +32,10 @@
 
 namespace thrax {
 
-AstPrinter::AstPrinter() : num_spaces_(0), out(std::cout) {}
+AstPrinter::AstPrinter() : num_spaces_(0), argument_(false), out(std::cout) {}
 
-AstPrinter::AstPrinter(ostream& output_stream)
-    : num_spaces_(0), out(output_stream) {}
+AstPrinter::AstPrinter(std::ostream& output_stream)
+    : num_spaces_(0), argument_(false), out(output_stream) {}
 
 AstPrinter::~AstPrinter() {}
 
@@ -52,10 +51,9 @@ void AstPrinter::Visit(FstNode* node) {
   ScopedSpaceCounter ssc(&num_spaces_);
   out << Spaces(node)
       << "Type: " << FstNode::FstNodeTypeToString(node->GetType()) << std::endl;
-
-  // Handle subtype specific logic.
+  // Handles subtype specific logic.
   if (node->GetType() == FstNode::STRING_FSTNODE) {
-    StringFstNode* snode = static_cast<StringFstNode*>(node);
+    StringFstNode* snode = fst::down_cast<StringFstNode*>(node);
     out << Spaces(node) << "Parsing: ";
     if (snode->GetParseMode() == StringFstNode::BYTE)
       out << "BYTE" << std::endl;
@@ -64,7 +62,7 @@ void AstPrinter::Visit(FstNode* node) {
     else
       out << "SYMBOL_TABLE" << std::endl;
   } else if (node->GetType() == FstNode::REPETITION_FSTNODE) {
-    RepetitionFstNode* rnode = static_cast<RepetitionFstNode*>(node);
+    RepetitionFstNode* rnode = fst::down_cast<RepetitionFstNode*>(node);
     out << Spaces(node)
         << "Subtype: " << RepetitionFstNode::RepetitionFstNodeTypeToString(
                               rnode->GetRepetitionType()) << std::endl;
@@ -74,11 +72,12 @@ void AstPrinter::Visit(FstNode* node) {
       out << Spaces(node) << "Range: " << min << " to " << max << std::endl;
     }
   }
-
   if (node->NumArguments() > 0) {
     out << Spaces(node) << "Arguments:" << std::endl;
-    for (int i = 0; i < node->NumArguments(); ++i)
+    for (int i = 0; i < node->NumArguments(); ++i) {
+      argument_ = true;
       node->GetArgument(i)->Accept(this);
+    }
   }
   if (node->HasWeight())
     out << Spaces(node) << "Weight: " << node->GetWeight() << std::endl;
@@ -118,7 +117,7 @@ void AstPrinter::Visit(ImportNode* node) {
 
 void AstPrinter::Visit(RepetitionFstNode* node) {
   // Use the base FstNode version.
-  Visit(static_cast<FstNode*>(node));
+  Visit(fst::implicit_cast<FstNode*>(node));
 }
 
 void AstPrinter::Visit(ReturnNode* node) {
@@ -143,20 +142,24 @@ void AstPrinter::Visit(StatementNode* node) {
 
 void AstPrinter::Visit(StringFstNode* node) {
   // Use the base FstNode version.
-  Visit(static_cast<FstNode*>(node));
+  Visit(fst::implicit_cast<FstNode*>(node));
 }
 
 void AstPrinter::Visit(StringNode* node) {
   out << Spaces(node) << "StringNode: " << node->Get() << std::endl;
 }
 
-string AstPrinter::Spaces(Node *node) const {
-  string output;
+std::string AstPrinter::Spaces(Node* node) const {
+  std::string output;
   for (int i = 0; i < num_spaces_; ++i) {
-    if (i != num_spaces_ - 1)
+    if (i != num_spaces_ - 1) {
       output += "|   ";
-    else
+    } else if (argument_) {
+      output += "| - ";
+      argument_ = false;
+    } else {
       output += "|-- ";
+    }
   }
   if (include_line_numbers) {
     output += std::to_string(node->getline()) + "-";

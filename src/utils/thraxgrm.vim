@@ -1,3 +1,5 @@
+" Copyright 2005-2020 Google LLC
+"
 " Licensed under the Apache License, Version 2.0 (the "License");
 " you may not use this file except in compliance with the License.
 " You may obtain a copy of the License at
@@ -9,9 +11,6 @@
 " WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 " See the License for the specific language governing permissions and
 " limitations under the License.
-"
-" Copyright 2005-2011 Google, Inc.
-" Author: ttai@google.com (Terry Tai)
 "
 " Vim syntax for Thrax grammar source files.
 " To use this, put this s/where easily accessible (maybe in $VIM/syntax/ or,
@@ -27,7 +26,7 @@ endif
 syn keyword thraxKeyword as import return
 syn keyword thraxParseKeyword byte utf8
 syn keyword thraxIncludedKeyword export func contained
-syn keyword thraxBuiltinFunctions Analyzer ArcSort AssertEmpty AssertEqual AssertNull CDRewrite Category Closure Compose Concat Connect Determinize Difference Expand Feature FeatureVector Invert LoadFst LoadFstFromFar Minimize MPdtCompose Optimize ParadigmReplace PdtCompose Project Replace Reverse Rewrite RmEpsilon RmWeight StringFile StringFst SymbolTable Tagger Union
+syn keyword thraxBuiltinFunctions Analyzer ArcSort AssertEmpty AssertEqual AssertNull CDRewrite Category Closure Compose Concat Determinize Difference Expand Feature FeatureVector Invert LenientlyCompose LoadFst LoadFstFromFar Minimize MPdtCompose Optimize ParadigmReplace PdtCompose Project Replace Reverse Rewrite RmEpsilon RmWeight StringFile StringFst SymbolTable Tagger Union
 
 syn match   thraxSymbols "\(\[\|\]\|=\|{\|}\|;\||\|+\|\*\|-\|,\|?\|<\|>\|:\|@\|(\|)\)" display
 syn match   thraxBackslashedChar "\\." display contained

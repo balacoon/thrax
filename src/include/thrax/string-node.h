@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -9,9 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
 //
 // Basic node wrapper around a text string.
 
@@ -30,17 +29,19 @@ class AstWalker;
 
 class StringNode : public Node {
  public:
-  StringNode(const string& str);
-  virtual ~StringNode();
+  explicit StringNode(const std::string& str);
 
-  const string& Get() const;
+  ~StringNode() override;
 
-  virtual void Accept(AstWalker* walker);
+  const std::string& Get() const;
+
+  void Accept(AstWalker* walker) override;
 
  private:
-  string str_;
+  std::string str_;
 
-  DISALLOW_COPY_AND_ASSIGN(StringNode);
+  StringNode(const StringNode&) = delete;
+  StringNode& operator=(const StringNode&) = delete;
 };
 
 }  // namespace thrax

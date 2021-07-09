@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// A rule node is an assignment of an FST or other object to a variable.  The
+// A rule node is an assignment of an FST or other object to a variable. The
 // rule node contains the left and right hand sides of the assignment.
 
 #ifndef THRAX_RULE_NODE_H_
 #define THRAX_RULE_NODE_H_
-
-#include <string>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -38,20 +35,24 @@ class RuleNode : public Node {
   };
 
   RuleNode(IdentifierNode* name, Node* rhs, ExportStatus exp);
-  virtual ~RuleNode();
+
+  ~RuleNode() override;
 
   IdentifierNode* GetName() const;
+
   Node* Get() const;
+
   bool ShouldExport() const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   IdentifierNode* name_;
   Node* rhs_;
   ExportStatus export_;
 
-  DISALLOW_COPY_AND_ASSIGN(RuleNode);
+  RuleNode(const RuleNode&) = delete;
+  RuleNode& operator=(const RuleNode&) = delete;
 };
 
 }  // namespace thrax

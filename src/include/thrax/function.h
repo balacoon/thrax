@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,13 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// Basic function class that implements some operation in C++.  Inheritors
+// Basic function class that implements some operation in C++. Inheritors
 // should perform some sort of manipulation based on the input arguments and
-// then return a DataType.  Implementors also need to free the provided argument
-// vector (both the contained pointers and the vector pointer itself).  Finally,
+// then return a DataType. Implementors also need to free the provided argument
+// vector (both the contained pointers and the vector pointer itself). Finally,
 // they should also be templated on the Arc type and call
 // REGISTER_GRM_FUNCTION(ClassName) for StdArc and LogArc support (usually in
 // loader.cc).
@@ -25,12 +24,12 @@
 #define THRAX_FUNCTION_H_
 
 #include <iostream>
+#include <memory>
 #include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
-#include <fst/fstlib.h>
+#include <fst/fst.h>
 #include <thrax/datatype.h>
 #include <thrax/compat/stlfunctions.h>
 #include <thrax/compat/registry.h>
@@ -46,22 +45,21 @@ class Function {
 
   // Runs the desired function by wrapping Execute() and then freeing the
   // arguments.
-  DataType* Run(vector<DataType*>* args) {
-    DataType* return_value = Execute(*args);
-
-    STLDeleteContainerPointers(args->begin(), args->end());
-    delete args;
-
+  std::unique_ptr<DataType> Run(
+      std::unique_ptr<std::vector<std::unique_ptr<DataType>>> args) {
+    auto return_value = Execute(*args);
     return return_value;
   }
 
  protected:
   // Actually performs the function's work, without deleting the provided
   // arguments.
-  virtual DataType* Execute(const vector<DataType*>& args) = 0;
+  virtual std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) = 0;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(Function<Arc>);
+  Function<Arc>(const Function<Arc>&) = delete;
+  Function<Arc>& operator=(const Function<Arc>&) = delete;
 };
 
 
@@ -90,78 +88,79 @@ extern void RegisterFunctions();
 template <typename Arc>
 class UnaryFstFunction : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   UnaryFstFunction() {}
-  virtual ~UnaryFstFunction() {}
+  ~UnaryFstFunction() override {}
 
  protected:
-  virtual DataType* Execute(const vector<DataType*>& args) {
-    if (args.size() < 1) {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
+    if (args.empty()) {
       std::cout << "UnaryFstFunction: Expected at least 1 argument"
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
     if (!args[0]->is<Transducer*>()) {
       std::cout << "UnaryFstFunction: Expected FST for argument 1" << std::endl;
-      return NULL;
+      return nullptr;
     }
-
-    const Transducer* fst = *args[0]->get<Transducer*>();
-    Transducer* output = UnaryFstExecute(*fst, args);
-
-    return output ? new DataType(output) : NULL;
+    const auto* fst = *args[0]->get<Transducer*>();
+    auto output = UnaryFstExecute(*fst, args);
+    return output ? std::make_unique<DataType>(std::move(output)) : nullptr;
   }
 
   // This should actually perform the operation, using the FST argument
-  // provided along with extra arguments still in the vector.  The final result
-  // should be allocated by this function.  Ownership of provided arguments
-  // remains with the caller.  Return NULL to denote an error.
-  virtual Transducer* UnaryFstExecute(const Transducer& fst,
-                                      const vector<DataType*>& args) = 0;
+  // provided along with extra arguments still in the vector. The final result
+  // should be allocated by this function. Ownership of provided arguments
+  // remains with the caller. To signal an error, return nullptr.
+  virtual std::unique_ptr<Transducer> UnaryFstExecute(
+      const Transducer& fst,
+      const std::vector<std::unique_ptr<DataType>>& args) = 0;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(UnaryFstFunction);
+  UnaryFstFunction(const UnaryFstFunction&) = delete;
+  UnaryFstFunction& operator=(const UnaryFstFunction&) = delete;
 };
 
 
 template <typename Arc>
 class BinaryFstFunction : public Function<Arc> {
  public:
-  typedef fst::Fst<Arc> Transducer;
+  using Transducer = ::fst::Fst<Arc>;
 
   BinaryFstFunction() {}
-  virtual ~BinaryFstFunction() {}
+  ~BinaryFstFunction() override {}
 
  protected:
-  virtual DataType* Execute(const vector<DataType*>& args) {
+  std::unique_ptr<DataType> Execute(
+      const std::vector<std::unique_ptr<DataType>>& args) final {
     if (args.size() < 2) {
       std::cout << "BinaryFstFunction: Expected at least 2 arguments"
                 << std::endl;
-      return NULL;
+      return nullptr;
     }
     for (int i = 0; i < 2; ++i) {
       if (!args[i]->is<Transducer*>()) {
         std::cout << "BinaryFstFunction: Expected FST for argument " << i + 1
                   << std::endl;
-        return NULL;
+        return nullptr;
       }
     }
-
-    const Transducer* left = *args[0]->get<Transducer*>();
-    const Transducer* right = *args[1]->get<Transducer*>();
-    Transducer* output = BinaryFstExecute(*left, *right, args);
-
-    return output ? new DataType(output) : NULL;
+    const auto* left = *args[0]->get<Transducer*>();
+    const auto* right = *args[1]->get<Transducer*>();
+    auto output = BinaryFstExecute(*left, *right, args);
+    return output ? std::make_unique<DataType>(std::move(output)) : nullptr;
   }
 
   // Same as above (with UnaryFstFunction), except now with two arguments.
-  virtual Transducer* BinaryFstExecute(const Transducer& left,
-                                       const Transducer& right,
-                                       const vector<DataType*>& args) = 0;
+  virtual std::unique_ptr<Transducer> BinaryFstExecute(
+      const Transducer& left, const Transducer& right,
+      const std::vector<std::unique_ptr<DataType>>& args) = 0;
 
  private:
-  DISALLOW_COPY_AND_ASSIGN(BinaryFstFunction);
+  BinaryFstFunction(const BinaryFstFunction&) = delete;
+  BinaryFstFunction& operator=(const BinaryFstFunction&) = delete;
 };
 
 }  // namespace function

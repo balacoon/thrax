@@ -8,7 +8,7 @@ if HAVE_BIN
 bin_PROGRAMS = thraxcompiler thraxrewrite-tester thraxrandom-generator
 
 if HAVE_READLINE
-  LDADD= -L/usr/local/lib/fst ../lib/libthrax.la -lfstfar -lfst -lm -ldl -lreadline
+  LDADD= -L/usr/local/lib/fst ../lib/libthrax.la -lfstfar -lfst -lm -ldl -lreadline -lcurses
 else
   LDADD= -L/usr/local/lib/fst ../lib/libthrax.la -lfstfar -lfst -lm -ldl
 endif
@@ -20,12 +20,12 @@ thraxrewrite_tester_SOURCES = rewrite-tester.cc rewrite-tester-utils.cc rewrite-
 thraxrandom_generator_SOURCES = random-generator.cc utildefs.cc utildefs.h
 endif
 
-EXTRA_DIST = thraxmakedep
+EXTRA_DIST = thraxmakedep regression_test.cc
 
 install-exec-local: $(EXTRA_DIST)
-	-mkdir -p -m 755 $(bindir)
-	-cp -p $(srcdir)/thraxmakedep $(bindir)
-	-chmod a+x $(bindir)/thraxmakedep
+	-mkdir -p -m 755 $(DESTDIR)$(bindir)
+	-cp -p $(srcdir)/thraxmakedep $(DESTDIR)$(bindir)
+	-chmod a+x $(DESTDIR)$(bindir)/thraxmakedep
 
 uninstall-local:
-	-rm -f $(bindir)/thraxmakedep
+	-rm -f $(DESTDIR)$(bindir)/thraxmakedep

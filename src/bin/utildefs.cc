@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,106 +12,116 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: rws@google.com (Richard Sproat)
-//
 // Definitions needed by various utilities here.
-
-#include <string>
-#include <vector>
-using std::vector;
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
+#include <../bin/utildefs.h>
+
+#include <stack>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <fst/arc.h>
 #include <fst/fst.h>
 #include <fst/string.h>
 #include <fst/symbol-table.h>
 #include <fst/vector-fst.h>
+#include <thrax/algo/paths.h>
 #include <thrax/grm-manager.h>
-#include <../bin/utildefs.h>
+
+DEFINE_string(field_separator, " ",
+              "Field separator for strings of symbols from a symbol table.");
 
 namespace thrax {
+namespace {
 
-bool VisitState(const Transducer& fst,
-                TokenType type,
-                const SymbolTable* generated_symtab,
-                SymbolTable* symtab,
-                StdArc::StateId state,
-                const string& path,
-                float cost,
-                vector<std::pair<string, float> >* paths) {
-  if (fst.Final(state) != StdArc::Weight::Zero()) {
-    paths->push_back(std::make_pair(path, cost + fst.Final(state).Value()));
-  }
-  fst::ArcIterator<Transducer> aiter(fst, state);
-  for (; !aiter.Done(); aiter.Next()) {
-    const StdArc &arc = aiter.Value();
-    string newpath = path;
-    if (arc.olabel != 0) {
-      // Check first to see if this label is in the generated symbol set. Note
-      // that this should not conflict with a user-provided symbol table since
-      // the parser used by GrmCompiler doesn't generate extra labels if a
-      // string is parsed using a user-provided symbol table.
-      if (generated_symtab &&
-          !generated_symtab->Find(arc.olabel).empty()) {
-        string sym = generated_symtab->Find(arc.olabel);
-        newpath += "[" + sym + "]";
-      } else if (type == SYMBOL) {
-        string sym = symtab->Find(arc.olabel);
-        if (sym == "") {
-          LOG(ERROR) << "Missing symbol in symbol table for id: " << arc.olabel;
-          return false;
-        }
-        newpath += sym;
-      } else if (type == BYTE) {
-        newpath.push_back(arc.olabel);
-      } else if (type == UTF8) {
-        string utf8_string;
-        vector<int> labels;
-        labels.push_back(arc.olabel);
-        if (!fst::LabelsToUTF8String(labels, &utf8_string)) {
-          LOG(ERROR) << "LabelsToUTF8String: Bad code point: "
-                     << arc.olabel;
-          return false;
-        }
-        newpath += utf8_string;
+using ::fst::kNoStateId;
+using ::fst::LabelsToUTF8String;
+using ::fst::PathIterator;
+using ::fst::Project;
+using ::fst::ProjectType;
+using ::fst::RmEpsilon;
+using ::fst::ShortestPath;
+using ::fst::StdArc;
+using ::fst::StdVectorFst;
+using ::fst::SymbolTable;
+using ::fst::TokenType;
+
+using Label = StdArc::Label;
+
+inline bool AppendLabel(Label label, TokenType type,
+                        const SymbolTable *generated_symtab,
+                        SymbolTable *symtab, std::string *path) {
+  if (label != 0) {
+    // Check first to see if this label is in the generated symbol set. Note
+    // that this should not conflict with a user-provided symbol table since
+    // the parser used by GrmCompiler doesn't generate extra labels if a
+    // string is parsed using a user-provided symbol table.
+    if (generated_symtab && !generated_symtab->Find(label).empty()) {
+      const auto &sym = generated_symtab->Find(label);
+      *path += "[" + sym + "]";
+    } else if (type == TokenType::SYMBOL) {
+      const auto &sym = symtab->Find(label);
+      if (sym.empty()) {
+        LOG(ERROR) << "Missing symbol in symbol table for id: " << label;
+        return false;
       }
-    }
-    if (!VisitState(fst, type, generated_symtab,
-                    symtab, arc.nextstate, newpath,
-                    cost + arc.weight.Value(), paths)) {
-      return false;
+      // For non-byte, non-UTF8 symbols, one overwhelmingly wants these to be
+      // space-separated.
+      if (!path->empty()) *path += FLAGS_field_separator;
+      *path += sym;
+    } else if (type == TokenType::BYTE) {
+      path->push_back(label);
+    } else if (type == TokenType::UTF8) {
+      std::string utf8_string;
+      std::vector<Label> labels;
+      labels.push_back(label);
+      if (!LabelsToUTF8String(labels, &utf8_string)) {
+        LOG(ERROR) << "LabelsToUTF8String: Bad code point: " << label;
+        return false;
+      }
+      *path += utf8_string;
     }
   }
   return true;
 }
 
-bool FstToStrings(const Transducer& fst,
-                  vector<std::pair<string, float> >* strings,
-                  const SymbolTable* generated_symtab,
-                  TokenType type,
-                  SymbolTable* symtab,
-                  size_t n) {
-  Transducer temp;
-  fst::ShortestPath(fst, &temp, n);
-  fst::Project(&temp, fst::PROJECT_OUTPUT);
-  fst::RmEpsilon(&temp);
-  if (temp.Start() == fst::kNoStateId) {
-    return false;
+}  // namespace
+
+bool FstToStrings(const StdVectorFst &fst,
+                  std::vector<std::pair<std::string, float>> *strings,
+                  const SymbolTable *generated_symtab, TokenType type,
+                  SymbolTable *symtab, size_t n) {
+  StdVectorFst shortest_path;
+  if (n == 1) {
+    ShortestPath(fst, &shortest_path, n);
+  } else {
+    // The uniqueness feature of ShortestPath requires us to have an acceptor,
+    // so we project and remove epsilon arcs.
+    StdVectorFst temp(fst);
+    Project(&temp, ProjectType::OUTPUT);
+    RmEpsilon(&temp);
+    ShortestPath(temp, &shortest_path, n, /*unique=*/true);
   }
-  return VisitState(temp, type, generated_symtab, symtab,
-                    temp.Start(), string(), 0, strings);
+  if (shortest_path.Start() == kNoStateId) return false;
+  for (PathIterator<StdArc> iter(shortest_path, /*check_acyclic=*/false);
+       !iter.Done(); iter.Next()) {
+    std::string path;
+    for (const auto label : iter.OLabels()) {
+      if (!AppendLabel(label, type, generated_symtab, symtab, &path)) {
+        return false;
+      }
+    }
+    strings->emplace_back(std::move(path), iter.Weight().Value());
+  }
+  return true;
 }
 
-const fst::SymbolTable*
-GetGeneratedSymbolTable(GrmManagerSpec<StdArc>* grm) {
-  const fst::Fst<StdArc>* symbolfst = grm->GetFst("*StringFstSymbolTable");
-  if (symbolfst) {
-    Transducer mutable_symbolfst(*symbolfst);
-    return mutable_symbolfst.InputSymbols()->Copy();
-  }
-  return NULL;
+const SymbolTable *GetGeneratedSymbolTable(GrmManagerSpec<StdArc> *grm) {
+  const auto *symbolfst = grm->GetFst("*StringFstSymbolTable");
+  return symbolfst ? symbolfst->InputSymbols()->Copy() : nullptr;
 }
 
 }  // namespace thrax

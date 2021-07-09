@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
 // Return statements tell us what FST to return from a function, allowing
 // binding to a variable in the main program.
 
 #ifndef THRAX_RETURN_NODE_H_
 #define THRAX_RETURN_NODE_H_
-
-#include <string>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -32,17 +29,19 @@ class IdentifierNode;
 
 class ReturnNode : public Node {
  public:
-  ReturnNode(Node* node);
-  virtual ~ReturnNode();
+  explicit ReturnNode(Node* node);
+
+  ~ReturnNode() override;
 
   Node* Get() const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   Node* node_;
 
-  DISALLOW_COPY_AND_ASSIGN(ReturnNode);
+  ReturnNode(const ReturnNode&) = delete;
+  ReturnNode& operator=(const ReturnNode&) = delete;
 };
 
 }  // namespace thrax

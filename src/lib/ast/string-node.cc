@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-
 #include <thrax/string-node.h>
 
 #include <string>
@@ -21,17 +20,12 @@
 
 namespace thrax {
 
-StringNode::StringNode(const string& str)
-    : Node(), str_(str) {}
+StringNode::StringNode(const std::string& str) : Node(), str_(str) {}
 
 StringNode::~StringNode() {}
 
-const string& StringNode::Get() const {
-  return str_;
-}
+const std::string& StringNode::Get() const { return str_; }
 
-void StringNode::Accept(AstWalker* walker) {
-  walker->Visit(this);
-}
+void StringNode::Accept(AstWalker* walker) { walker->Visit(this); }
 
 }  // namespace thrax

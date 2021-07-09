@@ -10,10 +10,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: rws@google.com (Richard Sproat)
-//
-// A registry for named functions to be used by the compiler.  The function of
+// A registry for named functions to be used by the compiler. The function of
 // the registry is to allow users to define new functions easily so that the
 // compiler is extensible.
 
@@ -23,53 +20,40 @@
 #include <map>
 #include <string>
 
-namespace thrax {
+#include <thrax/compat/stlfunctions.h>
 
-using std::map;
-using std::string;
+namespace thrax {
 
 template <class T>
 class Registry {
-public:
-  Registry() { };
+ public:
+  Registry() = default; 
+
   ~Registry() {
-    for (typename map<string, T>::iterator ix = registry_.begin();
-         ix != registry_.end();
-         ++ix) {
-      delete ix->second;
-    }
+    STLDeleteValues(&registry_);
   };
 
-  void Register(string name, T object) {
-    typename map<string, T>::iterator ix = registry_.find(name);
-    // Register once
-    if (ix == registry_.end()) {
-      registry_.insert(std::pair<string, T>(name, object));
-    }
+  void Register(const std::string &name, T object) {
+    // Will silently do nothing if already present.
+    registry_.emplace(name, object);
   }
 
-  T Get(string name) {
-    typename map<string, T>::iterator ix = registry_.find(name);
-    if (ix == registry_.end()) {
-      return NULL;
-    } else {
-      return ix->second;
-    }
+  T Get(const std::string &name) {
+    const auto it = registry_.find(name);
+    return it == registry_.end() ? nullptr : it->second;
   }
 
-  const T Get(string name) const {
-    typename map<string, T>::const_iterator ix = registry_.find(name);
-    if (ix == registry_.end()) {
-      return NULL;
-    } else {
-      return ix->second;
-    }
+  const T Get(const std::string &name) const {
+    const auto it = registry_.find(name);
+    return it == registry_.end() ? nullptr : it->second;
   }
 
-private:
-  map<string, T> registry_;
-  DISALLOW_COPY_AND_ASSIGN(Registry);
-};  // Registry
+ private:
+  std::map<std::string, T> registry_;
+
+  Registry(const Registry &) = delete;
+  Registry &operator=(const Registry &) = delete;
+};
 
 }  // namespace thrax
 

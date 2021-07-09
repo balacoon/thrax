@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// The main grammar is the top node (i.e., root) of the AST.  A grammar consists
+// The main grammar is the top node (i.e., root) of the AST. A grammar consists
 // of a list of imports, a list of functions, and a list of body functions.
 
 #ifndef THRAX_GRAMMAR_NODE_H_
 #define THRAX_GRAMMAR_NODE_H_
-
-#include <string>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -35,20 +32,24 @@ class GrammarNode : public Node {
   GrammarNode(CollectionNode* imports,
               CollectionNode* functions,
               CollectionNode* statements);
-  virtual ~GrammarNode();
+
+  ~GrammarNode() override;
 
   CollectionNode* GetImports() const;
+
   CollectionNode* GetFunctions() const;
+
   CollectionNode* GetStatements() const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   CollectionNode* imports_;
   CollectionNode* functions_;
   CollectionNode* statements_;
 
-  DISALLOW_COPY_AND_ASSIGN(GrammarNode);
+  GrammarNode(const GrammarNode&) = delete;
+  GrammarNode& operator=(const GrammarNode&) = delete;
 };
 
 }  // namespace thrax

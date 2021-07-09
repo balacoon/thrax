@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,17 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// This houses a list of other nodes.  During construction, we'll create them by
+// This houses a list of other nodes. During construction, we'll create them by
 // pushing onto the front of the list.
 
 #ifndef THRAX_COLLECTION_NODE_H_
 #define THRAX_COLLECTION_NODE_H_
 
 #include <deque>
-#include <string>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -32,10 +30,11 @@ class AstWalker;
 
 class CollectionNode : public Node {
  public:
-  typedef deque<Node*> Collection;
+  using Collection = std::deque<Node*>;
 
   CollectionNode();
-  virtual ~CollectionNode();
+
+  ~CollectionNode() override;
 
   // Add a collection to the list.
   void AddFront(Node* node);
@@ -43,14 +42,16 @@ class CollectionNode : public Node {
   int Size() const;
 
   Node* Get(int index) const;
+
   Node* operator[](int index) const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   Collection* collection_;
 
-  DISALLOW_COPY_AND_ASSIGN(CollectionNode);
+  CollectionNode(const CollectionNode&) = delete;
+  CollectionNode& operator=(const CollectionNode&) = delete;
 };
 
 }  // namespace thrax

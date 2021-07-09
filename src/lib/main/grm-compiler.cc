@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-
 #include <thrax/grm-compiler.h>
 
-DEFINE_bool(always_export, false, "Export all rules (for debugging purposes).");
-DEFINE_bool(print_ast, false, "Whether we print out the AST to STDOUT.");
-DEFINE_bool(line_numbers_in_ast, false, "Print line numbers in ast.");
+DEFINE_bool(always_export, false, "Export all rules (for debugging purposes)");
+DEFINE_bool(print_ast, false, "Whether we print out the AST to stdout");
+DEFINE_bool(line_numbers_in_ast, false, "Print line numbers in AST");

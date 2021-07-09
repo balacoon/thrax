@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-
 #include <thrax/identifier-node.h>
 
 #include <ctype.h>
+
 #include <string>
 
 #include <thrax/walker.h>
@@ -23,10 +23,8 @@
 
 namespace thrax {
 
-static bool ComponentIsValid(const string& s) {
-  if (s.empty())
-    return false;
-
+static bool ComponentIsValid(const std::string& s) {
+  if (s.empty()) return false;
   bool found_underscore = false;
   bool found_number = false;
   bool found_alpha = false;
@@ -41,15 +39,15 @@ static bool ComponentIsValid(const string& s) {
     else
       return false;
   }
-
   return !isdigit(s[0]) && (found_alpha || (found_underscore && found_number));
 }
 
-IdentifierNode::IdentifierNode(const string& name) : IdentifierNode(name, -1) {}
+IdentifierNode::IdentifierNode(const std::string& name)
+    : IdentifierNode(name, -1) {}
 
-IdentifierNode::IdentifierNode(const string& name, int begin_pos)
+IdentifierNode::IdentifierNode(const std::string& name, int begin_pos)
     : Node(), full_name_(name), begin_pos_(begin_pos) {
-  SplitStringAllowEmpty(full_name_, ".", &namespaces_);
+  namespaces_ = ::fst::StringSplit(full_name_, '.');
   identifier_ = namespaces_.back();
   namespaces_.pop_back();
   valid_ = CalculateValidity();
@@ -65,27 +63,17 @@ IdentifierNode::const_iterator IdentifierNode::end() const {
   return namespaces_.end();
 }
 
-bool IdentifierNode::HasNamespaces() const {
-  return !namespaces_.empty();
-}
+bool IdentifierNode::HasNamespaces() const { return !namespaces_.empty(); }
 
-const string& IdentifierNode::GetIdentifier() const {
-  return identifier_;
-}
+const std::string& IdentifierNode::GetIdentifier() const { return identifier_; }
 
-const string& IdentifierNode::Get() const {
-  return full_name_;
-}
+const std::string& IdentifierNode::Get() const { return full_name_; }
 
 int IdentifierNode::GetBeginPos() const { return begin_pos_; }
 
-bool IdentifierNode::IsValid() const {
-  return valid_;
-}
+bool IdentifierNode::IsValid() const { return valid_; }
 
-void IdentifierNode::Accept(AstWalker* walker) {
-  walker->Visit(this);
-}
+void IdentifierNode::Accept(AstWalker* walker) { walker->Visit(this); }
 
 bool IdentifierNode::CalculateValidity() {
   for (int i = 0; i < namespaces_.size(); ++i) {

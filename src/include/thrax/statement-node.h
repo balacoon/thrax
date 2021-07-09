@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: ttai@google.com (Terry Tai)
-//
-// A statement is a generic command to be executed.  Currently, we support only
+// A statement is a generic command to be executed. Currently, we support only
 // return statements and rule (assignment) statements.
 
 #ifndef THRAX_STATEMENT_NODE_H_
 #define THRAX_STATEMENT_NODE_H_
-
-#include <string>
 
 #include <fst/compat.h>
 #include <thrax/compat/compat.h>
@@ -36,21 +33,24 @@ class StatementNode : public Node {
     RETURN_STATEMENTNODE,
   };
 
-  StatementNode(StatementNodeType type);
-  virtual ~StatementNode();
+  explicit StatementNode(StatementNodeType type);
+
+  ~StatementNode() override;
 
   StatementNodeType GetType() const;
 
   void Set(Node* statement);
+
   Node* Get() const;
 
-  virtual void Accept(AstWalker* walker);
+  void Accept(AstWalker* walker) override;
 
  private:
   StatementNodeType type_;
   Node* statement_;
 
-  DISALLOW_COPY_AND_ASSIGN(StatementNode);
+  StatementNode(const StatementNode&) = delete;
+  StatementNode& operator=(const StatementNode&) = delete;
 };
 
 }  // namespace thrax

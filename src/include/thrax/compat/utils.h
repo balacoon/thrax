@@ -10,116 +10,144 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: rws@google.com (Richard Sproat)
-//
-// Simple implementation of StrCat, needed in various places.  This version
+// Simple implementation of StrCat, needed in various places. This version
 // allows from 2 to 5 combinations of strings and ints.
 
 #ifndef THRAX_COMPAT_STRUTILS_H_
 #define THRAX_COMPAT_STRUTILS_H_
 
-#include <stdarg.h>
-#include <stdio.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <fcntl.h>
+#include <unistd.h>
+
+#include <cstdarg>
+#include <cstdio>
+
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include <fst/compat.h>
+
 namespace thrax {
 
-using std::string;
-using std::fstream;
-using std::ios;
-using std::vector;
+// Operations on strings.
 
-struct StringOrInt {
-  StringOrInt(const string& s) : str_(s) {}
-  StringOrInt(const char* s) : str_(string(s)) {}
-  StringOrInt(int i) {
+class StringOrInt {
+ public:
+  StringOrInt(const std::string &s) : str_(s) {}  // NOLINT
+
+  StringOrInt(const char *s) : str_(std::string(s)) {}  // NOLINT
+
+  StringOrInt(int i) {  // NOLINT
     char buf[1024];
     sprintf(buf, "%d", i);
-    str_ = string(buf);
+    str_ = std::string(buf);
   }
-  string str_;
+
+  const std::string &Get() const { return str_; }
+
+ private:
+  std::string str_;
 };
 
-extern string StrCat(const StringOrInt &s1, const StringOrInt &s2);
+// TODO(kbg): Make this work with variadic template, maybe.
 
-extern string StrCat(const StringOrInt &s1,
-                     const StringOrInt &s2,
-                     const StringOrInt &s3);
+inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2) {
+  return s1.Get() + s2.Get();
+}
 
-extern string StrCat(const StringOrInt &s1,
-                     const StringOrInt &s2,
-                     const StringOrInt &s3,
-                     const StringOrInt &s4);
+inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
+                             const StringOrInt &s3) {
+  return s1.Get() + StringCat(s2, s3);
+}
 
-extern string StrCat(const StringOrInt &s1,
-                     const StringOrInt &s2,
-                     const StringOrInt &s3,
-                     const StringOrInt &s4,
-                     const StringOrInt &s5);
+inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
+                             const StringOrInt &s3, const StringOrInt &s4) {
+  return s1.Get() + StringCat(s2, s3, s4);
+}
 
-extern string StringPrintf(const char* format, ...);
+inline std::string StringCat(const StringOrInt &s1, const StringOrInt &s2,
+                             const StringOrInt &s3, const StringOrInt &s4,
+                             const StringOrInt &s5) {
+  return s1.Get() + StringCat(s2, s3, s4, s5);
+}
 
-extern void SplitStringAllowEmpty(const string& full, const char* delim,
-                                  vector<string>* result);
+inline void StringReplace(std::string *full, const std::string &before,
+                          const std::string &after) {
+  size_t pos = 0;
+  while ((pos = full->find(before, pos)) != std::string::npos) {
+    full->replace(pos, before.size(), after);
+    pos += after.size();
+  }
+}
 
-extern vector<string> Split(const string& full, const char* delim);
+inline std::string StringReplace(const std::string &full,
+                                 const std::string &before,
+                                 const std::string &after, bool /* ignored */) {
+  std::string copy(full);
+  StringReplace(&copy, before, after);
+  return copy;
+}
 
-extern string JoinPath(const string& dirname, const string& basename);
+std::string StringPrintf(const char *format, ...);
 
-extern const char* Suffix(const char* filename);
+// Operations on filenames.
 
-extern const string Suffix(const string& filename);
+std::string JoinPath(const std::string &dirname, const std::string &basename);
 
-extern string StripBasename(const char* filename);
+const char *Suffix(const char *filename);
 
-extern string StripBasename(const string& filename);
+const std::string Suffix(const std::string &filename);
 
-extern bool Readable(const string& f);
+std::string StripBasename(const char *filename);
 
-extern void ReadFileToStringOrDie(const string& file, string* store);
+std::string StripBasename(const std::string &filename);
 
-extern bool RecursivelyCreateDir(const string& path);
+bool Readable(const std::string &filename);
+
+void ReadFileToStringOrDie(const std::string &filename, std::string *store);
+
+bool RecursivelyCreateDir(const std::string &path);
 
 class File {
  public:
-  File() : stream_(NULL) {}
-  explicit File(fstream* stream) : stream_(stream) {}
+  File() {}
 
-  ~File() { delete stream_; }
-  void SetStream(fstream* stream) {
-    stream_ = stream;
-  }
-  fstream* stream() { return stream_; }
+  explicit File(std::fstream *stream) : stream_(stream) {}
 
-  void Close() {
-    stream_->close();
-    delete stream_;
+  explicit File(std::unique_ptr<std::fstream> &&stream)
+      : stream_(std::move(stream)) {}
+
+  void SetStream(std::fstream *stream) { stream_.reset(stream); }
+
+  void SetStream(std::unique_ptr<std::fstream> &&stream) {
+    stream_ = std::move(stream);
   }
+
+  std::fstream *Stream() { return stream_.get(); }
+
+  void Close() { stream_.reset(); }
 
  private:
-  fstream* stream_;
+  std::unique_ptr<std::fstream> stream_;
 };
 
-// 2^14 --- should be enough for 1 line for the intended use
-
-#define MAXLINE 16384
+// 2^14 should be enough for 1 line for the intended use.
 
 class InputBuffer {
  public:
-  explicit InputBuffer(File* fp) : fp_(fp) { }
-  ~InputBuffer() { delete fp_; }
-  bool ReadLine(string* line) {
+  constexpr static int kMaxLine = 16384;
+
+  explicit InputBuffer(File *fp) : fp_(fp) {}
+
+  bool ReadLine(std::string *line) {
     line->clear();
-    fp_->stream()->getline(buf_, MAXLINE);
-    if (!fp_->stream()->gcount()) {
-      delete fp_;
-      fp_ = NULL;
+    fp_->Stream()->getline(buf_, kMaxLine);
+    if (!fp_->Stream()->gcount()) {
+      fp_.reset();
       return false;
     }
     line->append(buf_);
@@ -127,13 +155,13 @@ class InputBuffer {
   }
 
  private:
-  File* fp_;
-  char buf_[MAXLINE];
+  std::unique_ptr<File> fp_;
+  char buf_[kMaxLine];
 };
 
-File* Open(const string& filename, const string& mode);
+File *Open(const std::string &filename, const std::string &mode);
 
-File* OpenOrDie(const string& filename, const string& mode);
+File *OpenOrDie(const std::string &filename, const std::string &mode);
 
 }  // namespace thrax
 

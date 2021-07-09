@@ -1,3 +1,5 @@
+// Copyright 2005-2020 Google LLC
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -10,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-// Copyright 2005-2011 Google, Inc.
-// Author: wojciech@google.com (Wojciech Skut)
-//         ttai@google.com (Terry Tai)
-
 #include <thrax/lexer.h>
 
 #include <ctype.h>
@@ -22,8 +20,8 @@
 
 namespace thrax {
 
-static set<string> InitStaticKeywords() {
-  set<string> keywords;
+static std::set<std::string> InitStaticKeywords() {
+  std::set<std::string> keywords;
   keywords.insert("as");
   keywords.insert("export");
   keywords.insert("func");
@@ -33,7 +31,8 @@ static set<string> InitStaticKeywords() {
   keywords.insert("utf8");
   return keywords;
 }
-const set<string> Lexer::kKeywords = InitStaticKeywords();
+
+const std::set<std::string> Lexer::kKeywords = InitStaticKeywords();
 
 Lexer::TokenClass Lexer::YYLex() {
   int begin_pos = GetPos();
@@ -135,8 +134,14 @@ Lexer::TokenClass Lexer::YYLex() {
       }
       found_token = true;
     } else {
+      std::string filename = current_grammar_path() + ":";
+      if (filename == ":") {
+        filename = "line ";
+      }
       LOG(FATAL) << "Cannot parse character " << static_cast<char>(c) << " ("
-                 << c << ")\n";
+                 << c << ") at " << filename << line_number()
+                 << " at absolute character position " << GetPos() << " near: '"
+                 << GetCurrentContext() << "'";
     }
   }
   curr_token_.begin_pos = begin_pos;
@@ -144,9 +149,7 @@ Lexer::TokenClass Lexer::YYLex() {
   return curr_token_.token_class;
 }
 
-const string &Lexer::YYString() const {
-  return curr_token_.token_string;
-}
+const std::string &Lexer::YYString() const { return curr_token_.token_string; }
 
 int Lexer::YYBeginPos() const { return curr_token_.begin_pos; }
 
