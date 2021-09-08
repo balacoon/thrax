@@ -46,6 +46,8 @@ class GrmManagerSpec : public AbstractGrmManager<Arc> {
   // otherwise.
   bool LoadArchive(const std::string &filename);
 
+  bool LoadArchive(std::istream *stream);
+
   // This function will write the created FSTs into an FST archive with the
   // provided filename.
   void ExportFar(const std::string &filename) const override;
@@ -62,6 +64,21 @@ bool GrmManagerSpec<Arc>::LoadArchive(const std::string &filename) {
       ::fst::STTableFarReader<Arc>::Open(filename));
 #else
       ::fst::STTableFarReader<Arc>::Open(filename));
+#endif  // NO_GOOGLE
+  if (!reader) {
+    LOG(ERROR) << "Unable to open FAR: " << filename;
+    return false;
+  }
+  return Base::LoadArchive(reader.get());
+}
+
+template <typename Arc>
+bool GrmManagerSpec<Arc>::LoadArchive(std::istream *stream) {
+  std::unique_ptr<::fst::FarReader<Arc>> reader(
+#ifndef NO_GOOGLE
+      ::fst::STTableFarReader<Arc>::Open(stream));
+#else
+      ::fst::STTableFarReader<Arc>::Open(stream));
 #endif  // NO_GOOGLE
   if (!reader) {
     LOG(ERROR) << "Unable to open FAR: " << filename;
