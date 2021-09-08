@@ -81,7 +81,7 @@ bool GrmManagerSpec<Arc>::LoadArchive(std::istream *stream) {
       ::fst::STTableFarReader<Arc>::Open(stream));
 #endif  // NO_GOOGLE
   if (!reader) {
-    LOG(ERROR) << "Unable to open FAR: " << filename;
+    LOG(ERROR) << "Unable to read FAR from stream";
     return false;
   }
   return Base::LoadArchive(reader.get());
