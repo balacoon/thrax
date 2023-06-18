@@ -134,7 +134,11 @@ bool RecursivelyCreateDir(const std::string &path) {
       if (S_ISDIR(stat_buf.st_mode)) continue;
       return false;
     } else {
+#ifdef __linux__
       if (mkdir(crpath, ACCESSPERMS) == -1) return false;
+#else
+      if (mkdir(crpath) == -1) return false;
+#endif
     }
   }
   return true;
