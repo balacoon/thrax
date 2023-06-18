@@ -48,7 +48,7 @@ namespace fst {
 
 enum CDRewriteDirection { LEFT_TO_RIGHT, RIGHT_TO_LEFT, SIMULTANEOUS };
 
-enum CDRewriteMode { OBLIGATORY, OPTIONAL };
+enum CDRewriteMode { OBLIGATORY, OPTIONALE };
 
 namespace internal {
 
@@ -88,7 +88,7 @@ class CDRewriteRule {
   // Builds the transducer representing the context-dependent rewrite rule.
   // sigma is an FST specifying (the closure of) the alphabet for the resulting
   // transducer. The dir argument can be LEFT_TO_RIGHT, RIGHT_TO_LEFT or
-  // SIMULTANEOUS; mode can be OBLIGATORY or OPTIONAL; sigma must be an
+  // SIMULTANEOUS; mode can be OBLIGATORY or OPTIONALE; sigma must be an
   // unweighted acceptor representing a bifix code.
   //
   // The error bit on the output FST is set if any argument does not satisfy the
@@ -413,7 +413,7 @@ void CDRewriteRule<Arc>::MakeReplace(MutableFst<Arc> *fst,
           break;
       }
       break;
-    case OPTIONAL:
+    case OPTIONALE:
       all_loops.emplace_back(rbrace_, 0);
       initial_loops.emplace_back(rbrace_, 0);
       switch (dir_) {
@@ -477,7 +477,7 @@ typename Arc::Label CDRewriteRule<Arc>::MaxLabel(const Fst<Arc> &fst) {
 // Builds the transducer representing the context-dependent rewrite rule. sigma
 // is an FST specifying (the closure of) the alphabet for the resulting
 // transducer. dir can be LEFT_TO_RIGHT, RIGHT_TO_LEFT or SIMULTANEOUS. mode can
-// be OBLIGATORY or OPTIONAL. sigma must be an unweighted acceptor representing
+// be OBLIGATORY or OPTIONALE. sigma must be an unweighted acceptor representing
 // a bifix code.
 //
 // The error bit on the output FST is set if any argument does not satisfy the
@@ -575,7 +575,7 @@ void CDRewriteRule<Arc>::Compile(const Fst<Arc> &sigma, MutableFst<Arc> *fst,
           Compose(c, l2, fst);
           break;
         }
-        case OPTIONAL: {
+        case OPTIONALE: {
           // Builds l filter.
           VectorFst<Arc> l;
           MakeFilter(*lambda_, mutable_sigma, &l, CHECK, {{lbrace1_, 0}},
@@ -621,7 +621,7 @@ void CDRewriteRule<Arc>::Compile(const Fst<Arc> &sigma, MutableFst<Arc> *fst,
           Compose(c, r2, fst);
           break;
         }
-        case OPTIONAL: {
+        case OPTIONALE: {
           // Builds r filter.
           VectorFst<Arc> r;
           MakeFilter(*rho_, mutable_sigma, &r, CHECK, {{lbrace1_, 0}}, true);
@@ -668,7 +668,7 @@ void CDRewriteRule<Arc>::Compile(const Fst<Arc> &sigma, MutableFst<Arc> *fst,
           Compose(c, replace, fst);
           break;
         }
-        case OPTIONAL: {
+        case OPTIONALE: {
           // Builds l filter.
           VectorFst<Arc> l;
           MakeFilter(*lambda_, mutable_sigma, &l, CHECK, {{0, lbrace1_}},
@@ -844,7 +844,7 @@ bool CDRewriteRule<Arc>::HasArcWithLabel(const Fst<Arc> &fst, Label label) {
 // weighted transducer when phiXpsi is true and a weighted acceptor
 // otherwise. sigma is an FST specifying (the closure of) the alphabet
 // for the resulting transducer. dir can be LEFT_TO_RIGHT, RIGHT_TO_LEFT or
-// SIMULTANEOUS. mode can be OBLIGATORY or OPTIONAL. sigma must be an unweighted
+// SIMULTANEOUS. mode can be OBLIGATORY or OPTIONALE. sigma must be an unweighted
 // acceptor representing a bifix code.
 //
 // The error bit on the output FST is set if any argument does not satisfy the
@@ -871,7 +871,7 @@ void CDRewriteCompile(const Fst<Arc> &phi, const Fst<Arc> &psi,
 // phi, lambda, and rho must be unweighted acceptors and psi must be a
 // weighted acceptor. sigma is an FST specifying (the closure of) the alphabet
 // for the resulting transducer. dir can be LEFT_TO_RIGHT, RIGHT_TO_LEFT or
-// SIMULTANEOUS. mode can be OBLIGATORY or OPTIONAL. sigma must be an unweighted
+// SIMULTANEOUS. mode can be OBLIGATORY or OPTIONALE. sigma must be an unweighted
 // acceptor representing a bifix code.
 //
 // The error bit on the output FST is set if any argument does not satisfy the
@@ -897,7 +897,7 @@ void CDRewriteCompile(const Fst<Arc> &phi, const Fst<Arc> &psi,
 // Lambda, and rho must be unweighted acceptors. sigma is an FST specifying (the
 // closure of) the alphabet for the resulting transducer. dir can be
 // LEFT_TO_RIGHT, RIGHT_TO_LEFT or SIMULTANEOUS. mode can be OBLIGATORY or
-// OPTIONAL. sigma must be an unweighted acceptor representing a bifix code.
+// OPTIONALE. sigma must be an unweighted acceptor representing a bifix code.
 //
 // The error bit on the output FST is set if any argument does not satisfy the
 // preconditions.

@@ -167,7 +167,7 @@ class CDRewrite : public Function<Arc> {
       if (mode_str == "obl") {
         mode = ::fst::OBLIGATORY;
       } else if (mode_str == "opt") {
-        mode = ::fst::OPTIONAL;
+        mode = ::fst::OPTIONALE;
       } else {
         std::cout << "CDRewrite: Invalid mode: " << mode_str << std::endl;
         return nullptr;
